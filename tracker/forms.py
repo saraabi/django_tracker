@@ -6,6 +6,7 @@ from .models import (
     CaliforniaDetails,
     SchoolIncident,
     FormalSchoolComplaint,
+    AffectedPerson,
     AffectedPersonDemographics,
     ReportOption,
     ReportOptionSelection,
@@ -312,7 +313,6 @@ class CaliforniaDetailsForm(forms.ModelForm):
             "student_date_of_birth",
             "child_full_name",
             "age",
-            "educational_requirement_violated",
         ]
 
         widgets = {
@@ -337,13 +337,6 @@ class CaliforniaDetailsForm(forms.ModelForm):
 
             "age": forms.NumberInput(
                 attrs={"class": "form-control"}
-            ),
-
-            "educational_requirement_violated": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 4,
-                }
             ),
         }
 
@@ -413,6 +406,7 @@ class SchoolIncidentForm(forms.ModelForm):
             "satisfaction_explanation",
             "school_response_effect",
             "absence_due_to_racism_frequency",
+            "educational_requirement_violated",
         ]
 
         widgets = {
@@ -483,6 +477,12 @@ class SchoolIncidentForm(forms.ModelForm):
 
             "absence_due_to_racism_frequency": forms.Select(
                 attrs={"class": "form-select"}
+            ),
+            "educational_requirement_violated": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                }
             ),
         }
 
@@ -686,10 +686,10 @@ class DemographicsImpactForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, report=None, **kwargs):
+    def __init__(self, *args, affected_person=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.report = report
+        self.affected_person = affected_person
 
         categories = {
             "race_ethnicity":
@@ -713,9 +713,9 @@ class DemographicsImpactForm(forms.ModelForm):
                 category
             )
 
-            if report and report.pk:
+            if affected_person and affected_person.pk:
                 self.fields[field_name].initial = initial_option_ids(
-                    report,
+                    affected_person,
                     category,
                 )
 
@@ -832,6 +832,59 @@ class FinalQuestionsForm(forms.ModelForm):
 
         return value
 
+
+# ---------------------------------------------------------------------
+# AFFECTED PERSON FORM
+# ---------------------------------------------------------------------
+
+
+class AffectedPersonForm(forms.ModelForm):
+
+    class Meta:
+        model = AffectedPerson
+
+        fields = [
+            "is_reporter",
+            "first_name",
+            "last_name",
+        ]
+
+        widgets = {
+            "is_reporter": forms.RadioSelect(
+                choices=[
+                    (True, "I am reporting an incident that happened to me"),
+                    (False, "I am reporting on behalf of someone else"),
+                ]
+            ),
+
+            "first_name": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+
+            "last_name": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        is_reporter = cleaned_data.get("is_reporter")
+
+        if is_reporter is False:
+            if not cleaned_data.get("first_name"):
+                self.add_error(
+                    "first_name",
+                    "Please provide the affected person's first name.",
+                )
+
+            if not cleaned_data.get("last_name"):
+                self.add_error(
+                    "last_name",
+                    "Please provide the affected person's last name.",
+                )
+
+        return cleaned_data
 
 # ---------------------------------------------------------------------
 # REFERRALS

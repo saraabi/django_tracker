@@ -321,11 +321,6 @@ class CaliforniaDetails(models.Model):
             MinValueValidator(0),
             MaxValueValidator(120),
         ])
-    educational_requirement_violated = models.TextField(blank=True,
-        help_text=(
-            "Educational or program requirement the respondent "
-            "believes was violated."
-        ))
 
     def __str__(self):
         return f"California details — {self.report.uuid}"
@@ -433,6 +428,11 @@ class SchoolIncident(models.Model):
         choices=ResponseEffect.choices, db_index=True)
     absence_due_to_racism_frequency = models.CharField(max_length=30,
         blank=True, choices=AbsenceFrequency.choices, db_index=True)
+    educational_requirement_violated = models.TextField(blank=True,
+        help_text=(
+            "Educational or program requirement the respondent "
+            "believes was violated."
+        ))
 
     def __str__(self):
         if self.school_name:
@@ -501,6 +501,13 @@ class FormalSchoolComplaint(models.Model):
         if errors:
             raise ValidationError(errors)
 
+class AffectedPerson(models.Model):
+    report = models.OneToOneField(IncidentReport,
+        on_delete=models.CASCADE, related_name="affected_person")
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
+    is_reporter = models.BooleanField(default=True)
+
 class AffectedPersonDemographics(models.Model):
     """
     Demographic information should describe the person affected by
@@ -529,7 +536,7 @@ class AffectedPersonDemographics(models.Model):
         OTHER = ("other", "Other")
         PREFER_NOT = ("prefer_not", "Prefer not to say")
 
-    report = models.OneToOneField(IncidentReport,
+    affected_person = models.OneToOneField(AffectedPerson,
         on_delete=models.CASCADE, related_name="demographics")
     gender = models.CharField(max_length=30, blank=True,
         choices=Gender.choices, db_index=True)
