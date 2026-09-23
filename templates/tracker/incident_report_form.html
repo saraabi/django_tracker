@@ -42,13 +42,19 @@
     {% csrf_token %}
 
 
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
     {# FORM-WIDE ERRORS #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
 
     {% if contact_form.non_field_errors %}
         <div class="alert alert-danger">
             {{ contact_form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    {% if affected_person_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ affected_person_form.non_field_errors }}
         </div>
     {% endif %}
 
@@ -58,10 +64,46 @@
         </div>
     {% endif %}
 
+    {% if california_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ california_form.non_field_errors }}
+        </div>
+    {% endif %}
 
-    {# ---------------------------------------------------------- #}
-    {# CONSENT + CONTACT #}
-    {# ---------------------------------------------------------- #}
+    {% if school_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ school_form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    {% if formal_complaint_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ formal_complaint_form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    {% if demographics_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ demographics_form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    {% if referral_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ referral_form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    {% if final_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ final_form.non_field_errors }}
+        </div>
+    {% endif %}
+
+
+    {# ========================================================== #}
+    {# 1. CONSENT + CONTACT #}
+    {# ========================================================== #}
 
     <section class="form-section">
 
@@ -92,13 +134,46 @@
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# BASIC INCIDENT DETAILS #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 2. AFFECTED PERSON #}
+    {# ========================================================== #}
 
     <section class="form-section">
 
-        <h2>2. Tell us what happened</h2>
+        <h2>2. About the person who experienced the incident</h2>
+
+        <p class="text-muted">
+            Please let us know whether this incident happened to you
+            or whether you are reporting on behalf of someone else.
+        </p>
+
+        {{ affected_person_form.is_reporter|as_crispy_field }}
+
+        <div
+            id="affected-person-fields"
+            class="conditional-section"
+        >
+            <div class="row">
+                <div class="col-md-6">
+                    {{ affected_person_form.first_name|as_crispy_field }}
+                </div>
+
+                <div class="col-md-6">
+                    {{ affected_person_form.last_name|as_crispy_field }}
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+
+    {# ========================================================== #}
+    {# 3. BASIC INCIDENT DETAILS #}
+    {# ========================================================== #}
+
+    <section class="form-section">
+
+        <h2>3. Tell us what happened</h2>
 
         {{ incident_form.date_precision|as_crispy_field }}
 
@@ -134,19 +209,25 @@
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# TYPE OF INCIDENT #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 4. INCIDENT TYPE #}
+    {# ========================================================== #}
 
     <section class="form-section">
 
-        <h2>3. About the incident</h2>
+        <h2>4. About the incident</h2>
 
         <h3>
             Did the incident involve any of these forms of racism?
         </h3>
 
+        <p class="text-muted">
+            Select all that apply.
+        </p>
+
         {{ incident_form.racism_types|as_crispy_field }}
+
+        <hr>
 
         <h3>Where did the incident take place?</h3>
 
@@ -156,7 +237,13 @@
 
         {{ incident_form.location_types|as_crispy_field }}
 
+        <hr>
+
         <h3>What type of incident was it?</h3>
+
+        <p class="text-muted">
+            Select all that apply.
+        </p>
 
         {{ incident_form.incident_types|as_crispy_field }}
 
@@ -171,16 +258,16 @@
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# CALIFORNIA SECTION #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 5. CALIFORNIA SECTION #}
+    {# ========================================================== #}
 
     <section
         class="form-section conditional-section"
         id="california-section"
     >
 
-        <h2>4. California-specific information</h2>
+        <h2>5. California-specific information</h2>
 
         {{ california_form.is_k12_incident|as_crispy_field }}
 
@@ -212,16 +299,16 @@
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# SCHOOL SECTION #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 6. SCHOOL SECTION #}
+    {# ========================================================== #}
 
     <section
         class="form-section conditional-section"
         id="school-section"
     >
 
-        <h2>5. School information</h2>
+        <h2>6. School information</h2>
 
         <div class="row">
             <div class="col-md-7">
@@ -254,7 +341,9 @@
             {{ school_form.school_type_other|as_crispy_field }}
         </div>
 
+
         <hr>
+
 
         <h3>School response</h3>
 
@@ -264,11 +353,9 @@
             id="school-aware-details"
             class="conditional-section"
         >
-
             {{ school_form.concerns_addressed_to|as_crispy_field }}
 
             {{ school_form.concerns_addressed_date|as_crispy_field }}
-
         </div>
 
         {{ school_form.teacher_admin_response|as_crispy_field }}
@@ -284,7 +371,9 @@
 
         {{ school_form.school_response_effect|as_crispy_field }}
 
+
         <hr>
+
 
         <h3>Educational impacts</h3>
 
@@ -301,7 +390,13 @@
             {{ school_form.absence_due_to_racism_frequency|as_crispy_field }}
         </div>
 
+        {{ school_form.educational_requirement_violated|as_crispy_field }}
+
+
         <hr>
+
+
+        <h3>Reporting the incident</h3>
 
         {{ incident_form.previously_reported|as_crispy_field }}
 
@@ -317,16 +412,16 @@
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# FORMAL CA COMPLAINT #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 7. FORMAL CA K-12 COMPLAINT #}
+    {# ========================================================== #}
 
     <section
         class="form-section conditional-section"
         id="formal-complaint-section"
     >
 
-        <h2>6. California K–12 complaint</h2>
+        <h2>7. California K–12 complaint</h2>
 
         {{ formal_complaint_form.previously_submitted_to_district|as_crispy_field }}
 
@@ -358,21 +453,29 @@
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# EXPERIENCES + IMPACTS #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 8. EXPERIENCES + IMPACTS #}
+    {# ========================================================== #}
 
     <section class="form-section">
 
-        <h2>7. Experiences and impacts</h2>
+        <h2>8. Experiences and impacts</h2>
 
         <h3>
             What forms of discrimination or repression did you experience?
         </h3>
 
+        <p class="text-muted">
+            Select all that apply.
+        </p>
+
         {{ demographics_form.discrimination_experiences|as_crispy_field }}
 
-        <h3>What impacts did this have on your well-being?</h3>
+        <hr>
+
+        <h3>
+            What impacts did this have on your well-being?
+        </h3>
 
         <p class="text-muted">
             Select all that apply.
@@ -380,22 +483,24 @@
 
         {{ demographics_form.wellbeing_impacts|as_crispy_field }}
 
+        <hr>
+
         {{ final_form.connection_change|as_crispy_field }}
 
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# DEMOGRAPHICS #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 9. DEMOGRAPHICS #}
+    {# ========================================================== #}
 
     <section class="form-section">
 
-        <h2>8. Identity and demographics</h2>
+        <h2>9. Identity and demographics</h2>
 
         <p class="text-muted">
-            If you are filling this form out on behalf of another
-            person, answer these questions about the person who
+            If you are filling this form out on behalf of someone
+            else, please answer these questions about the person who
             experienced the incident.
         </p>
 
@@ -403,7 +508,15 @@
             What aspects of identity may have been targeted?
         </h3>
 
+        <p class="text-muted">
+            Select all that apply.
+        </p>
+
         {{ demographics_form.targeted_identities|as_crispy_field }}
+
+
+        <hr>
+
 
         <h3>Race and/or ethnicity</h3>
 
@@ -413,14 +526,19 @@
 
         {{ demographics_form.race_ethnicity|as_crispy_field }}
 
+
         <div
             id="arab-palestinian-section"
-            class="conditional-section"
+            class="conditional-section mt-4"
         >
             <h3>Arab / Palestinian identity</h3>
 
             {{ demographics_form.arab_palestinian_identity|as_crispy_field }}
         </div>
+
+
+        <hr>
+
 
         {{ demographics_form.gender|as_crispy_field }}
 
@@ -431,6 +549,7 @@
             {{ demographics_form.gender_other|as_crispy_field }}
         </div>
 
+
         {{ demographics_form.religion|as_crispy_field }}
 
         <div
@@ -440,21 +559,22 @@
             {{ demographics_form.religion_other|as_crispy_field }}
         </div>
 
+
         {{ final_form.other_identity_information|as_crispy_field }}
 
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# REFERRALS #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 10. CALIFORNIA REFERRALS #}
+    {# ========================================================== #}
 
     <section
         class="form-section conditional-section"
         id="referral-section"
     >
 
-        <h2>9. California referrals and support</h2>
+        <h2>10. California referrals and support</h2>
 
         <p>
             You may choose to have this incident shared with
@@ -463,7 +583,9 @@
 
         {{ referral_form.organizations|as_crispy_field }}
 
+
         <hr>
+
 
         <h3>Anonymous submissions</h3>
 
@@ -480,13 +602,13 @@
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# ATTACHMENTS #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 11. ATTACHMENTS #}
+    {# ========================================================== #}
 
     <section class="form-section">
 
-        <h2>10. Supporting materials</h2>
+        <h2>11. Supporting materials</h2>
 
         <p>
             Are there photos or documents you would like to include
@@ -498,13 +620,13 @@
     </section>
 
 
-    {# ---------------------------------------------------------- #}
-    {# FINAL INFORMATION + SIGNATURE #}
-    {# ---------------------------------------------------------- #}
+    {# ========================================================== #}
+    {# 12. FINAL INFORMATION #}
+    {# ========================================================== #}
 
     <section class="form-section">
 
-        <h2>11. Anything else?</h2>
+        <h2>12. Anything else?</h2>
 
         {{ final_form.additional_information|as_crispy_field }}
 
@@ -518,9 +640,13 @@
     </section>
 
 
+    {# ========================================================== #}
+    {# 13. SIGNATURE #}
+    {# ========================================================== #}
+
     <section class="form-section">
 
-        <h2>12. Signature</h2>
+        <h2>13. Signature</h2>
 
         <p>
             By typing your name below, you confirm that the information
@@ -560,6 +686,12 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+
+    /*
+     * ----------------------------------------------------------
+     * BASIC HELPERS
+     * ----------------------------------------------------------
+     */
 
     function value(id) {
         const el = document.getElementById(id);
@@ -616,6 +748,31 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
+    /*
+     * ----------------------------------------------------------
+     * AFFECTED PERSON
+     * ----------------------------------------------------------
+     */
+
+    function updateAffectedPerson() {
+
+        const isReporter = checkedValue(
+            "affected-is_reporter"
+        );
+
+        setVisible(
+            "affected-person-fields",
+            isReporter === "False"
+        );
+    }
+
+
+    /*
+     * ----------------------------------------------------------
+     * INCIDENT DATE
+     * ----------------------------------------------------------
+     */
+
     function updateDateFields() {
 
         const precision = value(
@@ -633,6 +790,12 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
+
+    /*
+     * ----------------------------------------------------------
+     * CALIFORNIA
+     * ----------------------------------------------------------
+     */
 
     function updateCalifornia() {
 
@@ -661,6 +824,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
+    /*
+     * ----------------------------------------------------------
+     * CA REPORTER ROLE
+     * ----------------------------------------------------------
+     */
+
     function updateReporterRole() {
 
         const role = value(
@@ -683,6 +852,12 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
+
+    /*
+     * ----------------------------------------------------------
+     * SCHOOL SECTION
+     * ----------------------------------------------------------
+     */
 
     function updateSchoolSection() {
 
@@ -714,6 +889,31 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
+    /*
+     * ----------------------------------------------------------
+     * SCHOOL TYPE
+     * ----------------------------------------------------------
+     */
+
+    function updateSchoolType() {
+
+        const schoolType = value(
+            "id_school-school_type"
+        );
+
+        setVisible(
+            "school-type-other",
+            schoolType === "other"
+        );
+    }
+
+
+    /*
+     * ----------------------------------------------------------
+     * SCHOOL AWARENESS
+     * ----------------------------------------------------------
+     */
+
     function updateSchoolAware() {
 
         const aware = value(
@@ -727,18 +927,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    function updateSchoolType() {
-
-        const type = value(
-            "id_school-school_type"
-        );
-
-        setVisible(
-            "school-type-other",
-            type === "other"
-        );
-    }
-
+    /*
+     * ----------------------------------------------------------
+     * SATISFACTION
+     * ----------------------------------------------------------
+     */
 
     function updateSatisfaction() {
 
@@ -755,6 +948,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
+    /*
+     * ----------------------------------------------------------
+     * PREVIOUS REPORTING
+     * ----------------------------------------------------------
+     */
+
     function updateReported() {
 
         const reported = checkedValue(
@@ -767,6 +966,12 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
+
+    /*
+     * ----------------------------------------------------------
+     * FORMAL COMPLAINT
+     * ----------------------------------------------------------
+     */
 
     function updateFormalComplaint() {
 
@@ -781,23 +986,49 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
+    /*
+     * ----------------------------------------------------------
+     * GENDER
+     * ----------------------------------------------------------
+     */
+
     function updateGender() {
+
+        const gender = value(
+            "id_demographics-gender"
+        );
 
         setVisible(
             "gender-other",
-            value("id_demographics-gender") === "other"
+            gender === "other"
         );
     }
 
+
+    /*
+     * ----------------------------------------------------------
+     * RELIGION
+     * ----------------------------------------------------------
+     */
 
     function updateReligion() {
 
+        const religion = value(
+            "id_demographics-religion"
+        );
+
         setVisible(
             "religion-other",
-            value("id_demographics-religion") === "other"
+            religion === "other"
         );
     }
 
+
+    /*
+     * ----------------------------------------------------------
+     * SWANA / ARAB / PALESTINIAN QUESTIONS
+     * ----------------------------------------------------------
+     */
 
     function updateArabPalestinian() {
 
@@ -822,28 +1053,85 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    function updateAll() {
-        updateDateFields();
-        updateCalifornia();
-        updateReporterRole();
-        updateSchoolSection();
-        updateSchoolAware();
-        updateSchoolType();
-        updateSatisfaction();
-        updateReported();
-        updateFormalComplaint();
-        updateGender();
-        updateReligion();
-        updateArabPalestinian();
+    /*
+     * ----------------------------------------------------------
+     * EDUCATIONAL IMPACT:
+     * SHOW ABSENCE FREQUENCY IF "MISS SCHOOL" SELECTED
+     * ----------------------------------------------------------
+     */
+
+    function updateAbsenceFrequency() {
+
+        const missedSchool =
+            checkboxWithLabelContains(
+                "school-educational_impacts",
+                "miss school"
+            );
+
+        setVisible(
+            "absence-frequency",
+            missedSchool
+        );
     }
 
+
+    /*
+     * ----------------------------------------------------------
+     * RUN ALL CONDITIONAL LOGIC
+     * ----------------------------------------------------------
+     */
+
+    function updateAll() {
+
+        updateAffectedPerson();
+
+        updateDateFields();
+
+        updateCalifornia();
+
+        updateReporterRole();
+
+        updateSchoolSection();
+
+        updateSchoolType();
+
+        updateSchoolAware();
+
+        updateSatisfaction();
+
+        updateReported();
+
+        updateFormalComplaint();
+
+        updateGender();
+
+        updateReligion();
+
+        updateArabPalestinian();
+
+        updateAbsenceFrequency();
+    }
+
+
+    /*
+     * Run whenever a form field changes.
+     */
 
     document.addEventListener(
         "change",
         updateAll
     );
 
+
+    /*
+     * Run once on page load so that:
+     *
+     * - existing POST data is respected after validation errors
+     * - editing forms displays the appropriate conditional fields
+     */
+
     updateAll();
+
 });
 </script>
 

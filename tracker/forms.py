@@ -3,10 +3,10 @@ from django.forms import ClearableFileInput
 
 from .models import (
     IncidentReport,
+    AffectedPerson,
     CaliforniaDetails,
     SchoolIncident,
     FormalSchoolComplaint,
-    AffectedPerson,
     AffectedPersonDemographics,
     ReportOption,
     ReportOptionSelection,
@@ -17,8 +17,16 @@ from .models import (
 
 
 # ---------------------------------------------------------------------
-# HELPERS
+# SHARED HELPERS
 # ---------------------------------------------------------------------
+
+YES_NO_RADIO = forms.RadioSelect(
+    choices=[
+        (True, "Yes"),
+        (False, "No"),
+    ]
+)
+
 
 class MultipleFileInput(ClearableFileInput):
     allow_multiple_selected = True
@@ -48,7 +56,10 @@ def option_queryset(category):
     return ReportOption.objects.filter(
         category=category,
         is_active=True,
-    ).order_by("sort_order", "label")
+    ).order_by(
+        "sort_order",
+        "label",
+    )
 
 
 def initial_option_ids(report, category):
@@ -58,14 +69,13 @@ def initial_option_ids(report, category):
     return ReportOptionSelection.objects.filter(
         report=report,
         option__category=category,
-    ).values_list("option_id", flat=True)
+    ).values_list(
+        "option_id",
+        flat=True,
+    )
 
 
 def save_option_selections(report, category, options):
-    """
-    Replace all selections for a particular category with the supplied options.
-    """
-
     ReportOptionSelection.objects.filter(
         report=report,
         option__category=category,
@@ -81,7 +91,7 @@ def save_option_selections(report, category, options):
 
 
 # ---------------------------------------------------------------------
-# CONSENT / CONTACT
+# CONTACT / CONSENT
 # ---------------------------------------------------------------------
 
 class IncidentContactForm(forms.ModelForm):
@@ -102,23 +112,18 @@ class IncidentContactForm(forms.ModelForm):
             "has_consented": forms.CheckboxInput(
                 attrs={"class": "form-check-input"}
             ),
-
             "state": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "first_name": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "last_name": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "email": forms.EmailInput(
                 attrs={"class": "form-control"}
             ),
-
             "phone": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
@@ -145,6 +150,63 @@ class IncidentContactForm(forms.ModelForm):
                 "phone",
                 "Phone number is required for non-California reports.",
             )
+
+        return cleaned_data
+
+
+# ---------------------------------------------------------------------
+# AFFECTED PERSON
+# ---------------------------------------------------------------------
+
+class AffectedPersonForm(forms.ModelForm):
+
+    class Meta:
+        model = AffectedPerson
+
+        fields = [
+            "is_reporter",
+            "first_name",
+            "last_name",
+        ]
+
+        widgets = {
+            "is_reporter": forms.RadioSelect(
+                choices=[
+                    (
+                        True,
+                        "I am reporting an incident that happened to me",
+                    ),
+                    (
+                        False,
+                        "I am reporting on behalf of someone else",
+                    ),
+                ]
+            ),
+            "first_name": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "last_name": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        is_reporter = cleaned_data.get("is_reporter")
+
+        if is_reporter is False:
+            if not cleaned_data.get("first_name"):
+                self.add_error(
+                    "first_name",
+                    "Please provide the affected person's first name.",
+                )
+
+            if not cleaned_data.get("last_name"):
+                self.add_error(
+                    "last_name",
+                    "Please provide the affected person's last name.",
+                )
 
         return cleaned_data
 
@@ -195,14 +257,12 @@ class IncidentDetailsForm(forms.ModelForm):
             "date_precision": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "incident_date": forms.DateInput(
                 attrs={
                     "class": "form-control",
                     "type": "date",
                 }
             ),
-
             "incident_month": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -210,34 +270,29 @@ class IncidentDetailsForm(forms.ModelForm):
                     "max": 12,
                 }
             ),
-
             "incident_year": forms.NumberInput(
                 attrs={"class": "form-control"}
             ),
-
             "description": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 7,
                 }
             ),
-
             "city": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "zip_code": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "anti_palestinian_racism": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
+            "knows_of_other_apr_incidents": YES_NO_RADIO,
+            "previously_reported": YES_NO_RADIO,
             "similar_incidents": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "resolution_steps": forms.Textarea(
                 attrs={
                     "class": "form-control",
@@ -246,8 +301,14 @@ class IncidentDetailsForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, report=None, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.report = report or (
+            self.instance
+            if self.instance and self.instance.pk
+            else None
+        )
 
         self.fields["racism_types"].queryset = option_queryset(
             ReportOption.Category.RACISM_TYPE
@@ -261,19 +322,19 @@ class IncidentDetailsForm(forms.ModelForm):
             ReportOption.Category.INCIDENT_TYPE
         )
 
-        if self.instance and self.instance.pk:
+        if self.report:
             self.fields["racism_types"].initial = initial_option_ids(
-                self.instance,
+                self.report,
                 ReportOption.Category.RACISM_TYPE,
             )
 
             self.fields["location_types"].initial = initial_option_ids(
-                self.instance,
+                self.report,
                 ReportOption.Category.LOCATION_TYPE,
             )
 
             self.fields["incident_types"].initial = initial_option_ids(
-                self.instance,
+                self.report,
                 ReportOption.Category.INCIDENT_TYPE,
             )
 
@@ -298,7 +359,7 @@ class IncidentDetailsForm(forms.ModelForm):
 
 
 # ---------------------------------------------------------------------
-# CALIFORNIA
+# CALIFORNIA DETAILS
 # ---------------------------------------------------------------------
 
 class CaliforniaDetailsForm(forms.ModelForm):
@@ -316,25 +377,22 @@ class CaliforniaDetailsForm(forms.ModelForm):
         ]
 
         widgets = {
+            "is_k12_incident": YES_NO_RADIO,
             "reporter_role": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "reporter_role_other": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "student_date_of_birth": forms.DateInput(
                 attrs={
                     "class": "form-control",
                     "type": "date",
                 }
             ),
-
             "child_full_name": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "age": forms.NumberInput(
                 attrs={"class": "form-control"}
             ),
@@ -413,68 +471,54 @@ class SchoolIncidentForm(forms.ModelForm):
             "school_name": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "school_district": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "grade": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "principal": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "location_within_school": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "school_type": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "school_type_other": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "school_was_aware": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "concerns_addressed_to": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "concerns_addressed_date": forms.DateInput(
                 attrs={
                     "class": "form-control",
                     "type": "date",
                 }
             ),
-
             "teacher_admin_response": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 4,
                 }
             ),
-
             "satisfied_with_response": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "satisfaction_explanation": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 4,
                 }
             ),
-
             "school_response_effect": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "absence_due_to_racism_frequency": forms.Select(
                 attrs={"class": "form-select"}
             ),
@@ -500,18 +544,14 @@ class SchoolIncidentForm(forms.ModelForm):
         )
 
         if report and report.pk:
-            self.fields["educational_impacts"].initial = (
-                initial_option_ids(
-                    report,
-                    ReportOption.Category.EDUCATIONAL_IMPACT,
-                )
+            self.fields["educational_impacts"].initial = initial_option_ids(
+                report,
+                ReportOption.Category.EDUCATIONAL_IMPACT,
             )
 
-            self.fields["nonreport_reasons"].initial = (
-                initial_option_ids(
-                    report,
-                    ReportOption.Category.NONREPORT_REASON,
-                )
+            self.fields["nonreport_reasons"].initial = initial_option_ids(
+                report,
+                ReportOption.Category.NONREPORT_REASON,
             )
 
     def save_options(self, report):
@@ -529,7 +569,7 @@ class SchoolIncidentForm(forms.ModelForm):
 
 
 # ---------------------------------------------------------------------
-# FORMAL CA SCHOOL COMPLAINT
+# FORMAL SCHOOL COMPLAINT
 # ---------------------------------------------------------------------
 
 class FormalSchoolComplaintForm(forms.ModelForm):
@@ -551,45 +591,42 @@ class FormalSchoolComplaintForm(forms.ModelForm):
         ]
 
         widgets = {
+            "previously_submitted_to_district": YES_NO_RADIO,
+            "authorize_autopopulation": YES_NO_RADIO,
             "complaint_against": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 3,
                 }
             ),
-
             "individuals_involved": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 3,
                 }
             ),
-
             "witnesses": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 3,
                 }
             ),
-
+            "discussed_with_principal_or_supervisor": YES_NO_RADIO,
             "concerns_addressed_to": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "concerns_addressed_date": forms.DateInput(
                 attrs={
                     "class": "form-control",
                     "type": "date",
                 }
             ),
-
             "requested_remedy": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 4,
                 }
             ),
-
             "complainant_address": forms.Textarea(
                 attrs={
                     "class": "form-control",
@@ -607,17 +644,18 @@ class FormalSchoolComplaintForm(forms.ModelForm):
             required = {
                 "complaint_against":
                     "Please identify who the complaint is against.",
-
                 "requested_remedy":
                     "Please describe the action you would like taken.",
-
                 "complainant_address":
                     "Your address is required for a formal complaint.",
             }
 
             for field, message in required.items():
                 if not cleaned_data.get(field):
-                    self.add_error(field, message)
+                    self.add_error(
+                        field,
+                        message,
+                    )
 
         return cleaned_data
 
@@ -672,24 +710,21 @@ class DemographicsImpactForm(forms.ModelForm):
             "gender": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "gender_other": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "religion": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "religion_other": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
         }
 
-    def __init__(self, *args, affected_person=None, **kwargs):
+    def __init__(self, *args, report=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.affected_person = affected_person
+        self.report = report
 
         categories = {
             "race_ethnicity":
@@ -713,9 +748,9 @@ class DemographicsImpactForm(forms.ModelForm):
                 category
             )
 
-            if affected_person and affected_person.pk:
+            if report and report.pk:
                 self.fields[field_name].initial = initial_option_ids(
-                    affected_person,
+                    report,
                     category,
                 )
 
@@ -778,32 +813,30 @@ class FinalQuestionsForm(forms.ModelForm):
             "connection_change": forms.Select(
                 attrs={"class": "form-select"}
             ),
-
             "other_identity_information": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 3,
                 }
             ),
-
             "additional_information": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 4,
                 }
             ),
-
             "support_sought_elsewhere": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 3,
                 }
             ),
-
+            "opt_out_of_followup": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
             "signature_name": forms.TextInput(
                 attrs={"class": "form-control"}
             ),
-
             "signature_date": forms.DateInput(
                 attrs={
                     "class": "form-control",
@@ -832,59 +865,6 @@ class FinalQuestionsForm(forms.ModelForm):
 
         return value
 
-
-# ---------------------------------------------------------------------
-# AFFECTED PERSON FORM
-# ---------------------------------------------------------------------
-
-
-class AffectedPersonForm(forms.ModelForm):
-
-    class Meta:
-        model = AffectedPerson
-
-        fields = [
-            "is_reporter",
-            "first_name",
-            "last_name",
-        ]
-
-        widgets = {
-            "is_reporter": forms.RadioSelect(
-                choices=[
-                    (True, "I am reporting an incident that happened to me"),
-                    (False, "I am reporting on behalf of someone else"),
-                ]
-            ),
-
-            "first_name": forms.TextInput(
-                attrs={"class": "form-control"}
-            ),
-
-            "last_name": forms.TextInput(
-                attrs={"class": "form-control"}
-            ),
-        }
-
-    def clean(self):
-        cleaned_data = super().clean()
-
-        is_reporter = cleaned_data.get("is_reporter")
-
-        if is_reporter is False:
-            if not cleaned_data.get("first_name"):
-                self.add_error(
-                    "first_name",
-                    "Please provide the affected person's first name.",
-                )
-
-            if not cleaned_data.get("last_name"):
-                self.add_error(
-                    "last_name",
-                    "Please provide the affected person's last name.",
-                )
-
-        return cleaned_data
 
 # ---------------------------------------------------------------------
 # REFERRALS
@@ -942,16 +922,26 @@ class ReferralForm(forms.Form):
         anonymous = cleaned_data.get("anonymous_organizations")
 
         if organizations is not None and anonymous is not None:
-            invalid = anonymous.exclude(
-                pk__in=organizations.values_list("pk", flat=True)
+            organization_ids = set(
+                organizations.values_list(
+                    "pk",
+                    flat=True,
+                )
             )
 
-            if invalid.exists():
+            anonymous_ids = set(
+                anonymous.values_list(
+                    "pk",
+                    flat=True,
+                )
+            )
+
+            if not anonymous_ids.issubset(organization_ids):
                 self.add_error(
                     "anonymous_organizations",
                     (
-                        "An organization must be selected for submission "
-                        "before it can receive an anonymous submission."
+                        "An organization must first be selected "
+                        "to receive the report."
                     ),
                 )
 
@@ -962,7 +952,10 @@ class ReferralForm(forms.Form):
         anonymous = self.cleaned_data["anonymous_organizations"]
 
         anonymous_ids = set(
-            anonymous.values_list("pk", flat=True)
+            anonymous.values_list(
+                "pk",
+                flat=True,
+            )
         )
 
         ReportReferral.objects.filter(
@@ -994,7 +987,10 @@ class AttachmentForm(forms.Form):
     def save(self, report):
         attachments = []
 
-        for uploaded_file in self.cleaned_data.get("files", []):
+        for uploaded_file in self.cleaned_data.get(
+            "files",
+            [],
+        ):
             attachments.append(
                 ReportAttachment.objects.create(
                     report=report,

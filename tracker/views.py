@@ -1,4 +1,3 @@
-from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import (
     get_object_or_404,
@@ -9,6 +8,7 @@ from django.utils import timezone
 
 from .forms import (
     IncidentContactForm,
+    AffectedPersonForm,
     IncidentDetailsForm,
     CaliforniaDetailsForm,
     SchoolIncidentForm,
@@ -21,11 +21,6 @@ from .forms import (
 
 from .models import (
     IncidentReport,
-    CaliforniaDetails,
-    SchoolIncident,
-    FormalSchoolComplaint,
-    AffectedPersonDemographics,
-    ReportOption,
 )
 
 
@@ -35,10 +30,7 @@ from .models import (
 
 def location_includes_school(incident_form):
     """
-    Determine whether 'school' was chosen as one of the location types.
-
-    IMPORTANT:
-    This assumes the school ReportOption has slug='school'.
+    Assumes that the school location ReportOption uses slug='school'.
     """
 
     if not incident_form.is_valid():
@@ -61,13 +53,6 @@ def should_show_school_form(
     incident_form,
     california_form=None,
 ):
-    """
-    School questions appear when either:
-
-    1. The location includes "school", OR
-    2. This is a California K-12 incident.
-    """
-
     school_location = location_includes_school(
         incident_form
     )
@@ -94,23 +79,24 @@ def should_show_school_form(
 
 def incident_report_create(request):
 
-    report = IncidentReport()
-
     if request.method == "POST":
 
         # ---------------------------------------------------------
-        # Forms that always apply
+        # BASE FORMS
         # ---------------------------------------------------------
 
         contact_form = IncidentContactForm(
             request.POST,
-            instance=report,
             prefix="contact",
+        )
+
+        affected_person_form = AffectedPersonForm(
+            request.POST,
+            prefix="affected",
         )
 
         incident_form = IncidentDetailsForm(
             request.POST,
-            instance=report,
             prefix="incident",
         )
 
@@ -121,7 +107,6 @@ def incident_report_create(request):
 
         final_form = FinalQuestionsForm(
             request.POST,
-            instance=report,
             prefix="final",
         )
 
@@ -131,28 +116,30 @@ def incident_report_create(request):
             prefix="attachments",
         )
 
-        # ---------------------------------------------------------
-        # First validate the main forms.
-        # ---------------------------------------------------------
-
-        base_forms_valid = all([
-            contact_form.is_valid(),
-            incident_form.is_valid(),
-            demographics_form.is_valid(),
-            final_form.is_valid(),
-            attachment_form.is_valid(),
-        ])
-
-        # We need state before determining conditional forms.
-        state = contact_form.cleaned_data.get(
-            "state"
-        ) if contact_form.is_valid() else None
+        # Validate these once so we can safely inspect cleaned_data.
+        contact_valid = contact_form.is_valid()
+        affected_person_valid = affected_person_form.is_valid()
+        incident_valid = incident_form.is_valid()
+        demographics_valid = demographics_form.is_valid()
+        final_valid = final_form.is_valid()
+        attachment_valid = attachment_form.is_valid()
 
         # ---------------------------------------------------------
-        # California conditional form
+        # DETERMINE STATE
+        # ---------------------------------------------------------
+
+        state = (
+            contact_form.cleaned_data.get("state")
+            if contact_valid
+            else None
+        )
+
+        # ---------------------------------------------------------
+        # CALIFORNIA FORM
         # ---------------------------------------------------------
 
         california_form = None
+        california_valid = True
 
         if state == "CA":
             california_form = CaliforniaDetailsForm(
@@ -162,23 +149,21 @@ def incident_report_create(request):
 
             california_valid = california_form.is_valid()
 
-        else:
-            california_valid = True
+        # ---------------------------------------------------------
+        # SCHOOL FORM
+        # ---------------------------------------------------------
 
-        # ---------------------------------------------------------
-        # School conditional form
-        # ---------------------------------------------------------
+        school_form = None
+        school_valid = True
 
         show_school = False
 
-        if incident_form.is_valid():
+        if incident_valid:
             show_school = should_show_school_form(
                 state,
                 incident_form,
                 california_form,
             )
-
-        school_form = None
 
         if show_school:
             school_form = SchoolIncidentForm(
@@ -188,21 +173,19 @@ def incident_report_create(request):
 
             school_valid = school_form.is_valid()
 
-        else:
-            school_valid = True
-
         # ---------------------------------------------------------
-        # Formal CA complaint
+        # FORMAL CA SCHOOL COMPLAINT
         # ---------------------------------------------------------
 
         formal_complaint_form = None
+        formal_valid = True
 
         is_ca_k12 = False
 
         if (
             state == "CA"
             and california_form
-            and california_form.is_valid()
+            and california_valid
         ):
             is_ca_k12 = bool(
                 california_form.cleaned_data.get(
@@ -216,16 +199,16 @@ def incident_report_create(request):
                 prefix="formal",
             )
 
-            formal_valid = formal_complaint_form.is_valid()
-
-        else:
-            formal_valid = True
+            formal_valid = (
+                formal_complaint_form.is_valid()
+            )
 
         # ---------------------------------------------------------
-        # Referral form is CA-only
+        # REFERRALS
         # ---------------------------------------------------------
 
         referral_form = None
+        referral_valid = True
 
         if state == "CA":
             referral_form = ReferralForm(
@@ -235,35 +218,40 @@ def incident_report_create(request):
 
             referral_valid = referral_form.is_valid()
 
-        else:
-            referral_valid = True
-
         # ---------------------------------------------------------
-        # Save everything atomically
+        # CHECK EVERYTHING
         # ---------------------------------------------------------
 
         all_valid = all([
-            base_forms_valid,
+            contact_valid,
+            affected_person_valid,
+            incident_valid,
+            demographics_valid,
+            final_valid,
+            attachment_valid,
             california_valid,
             school_valid,
             formal_valid,
             referral_valid,
         ])
 
+        # ---------------------------------------------------------
+        # SAVE
+        # ---------------------------------------------------------
+
         if all_valid:
 
             with transaction.atomic():
 
-                # Both forms edit IncidentReport.
-                #
-                # Save contact first, then copy the final/incident
-                # values onto the same instance.
+                # -------------------------------------------------
+                # INCIDENT REPORT
+                # -------------------------------------------------
 
-                report = contact_form.save(commit=False)
+                report = contact_form.save(
+                    commit=False
+                )
 
-                incident_data = incident_form.cleaned_data
-
-                incident_model_fields = [
+                incident_fields = [
                     "date_precision",
                     "incident_date",
                     "incident_month",
@@ -278,16 +266,16 @@ def incident_report_create(request):
                     "resolution_steps",
                 ]
 
-                for field in incident_model_fields:
+                for field in incident_fields:
                     setattr(
                         report,
                         field,
-                        incident_data.get(field),
+                        incident_form.cleaned_data.get(
+                            field
+                        ),
                     )
 
-                final_data = final_form.cleaned_data
-
-                final_model_fields = [
+                final_fields = [
                     "connection_change",
                     "other_identity_information",
                     "additional_information",
@@ -297,11 +285,13 @@ def incident_report_create(request):
                     "signature_date",
                 ]
 
-                for field in final_model_fields:
+                for field in final_fields:
                     setattr(
                         report,
                         field,
-                        final_data.get(field),
+                        final_form.cleaned_data.get(
+                            field
+                        ),
                     )
 
                 report.status = (
@@ -310,64 +300,101 @@ def incident_report_create(request):
 
                 report.submitted_at = timezone.now()
 
-                # Run model validation too.
                 report.full_clean()
-
                 report.save()
 
-                # ---------------------------------------------
-                # Multi-select incident options
-                # ---------------------------------------------
+                # -------------------------------------------------
+                # INCIDENT MULTI-SELECT OPTIONS
+                # -------------------------------------------------
 
-                incident_form.save_options(report)
-
-                # ---------------------------------------------
-                # Demographics
-                # ---------------------------------------------
-
-                demographics = (
-                    demographics_form.save(commit=False)
+                incident_form.save_options(
+                    report
                 )
 
-                demographics.report = report
+                # -------------------------------------------------
+                # AFFECTED PERSON
+                # -------------------------------------------------
+
+                affected_person = (
+                    affected_person_form.save(
+                        commit=False
+                    )
+                )
+
+                affected_person.report = report
+
+                if affected_person.is_reporter:
+                    affected_person.first_name = (
+                        report.first_name
+                    )
+
+                    affected_person.last_name = (
+                        report.last_name
+                    )
+
+                affected_person.full_clean()
+                affected_person.save()
+
+                # -------------------------------------------------
+                # DEMOGRAPHICS
+                # -------------------------------------------------
+
+                demographics = (
+                    demographics_form.save(
+                        commit=False
+                    )
+                )
+
+                demographics.affected_person = (
+                    affected_person
+                )
+
+                demographics.full_clean()
                 demographics.save()
 
-                demographics_form.save_options(report)
+                demographics_form.save_options(
+                    report
+                )
 
-                # ---------------------------------------------
-                # California
-                # ---------------------------------------------
+                # -------------------------------------------------
+                # CALIFORNIA DETAILS
+                # -------------------------------------------------
 
                 if california_form:
-
                     california = (
-                        california_form.save(commit=False)
+                        california_form.save(
+                            commit=False
+                        )
                     )
 
                     california.report = report
+
+                    california.full_clean()
                     california.save()
 
-                # ---------------------------------------------
-                # School
-                # ---------------------------------------------
+                # -------------------------------------------------
+                # SCHOOL INCIDENT
+                # -------------------------------------------------
 
                 if school_form:
-
                     school = school_form.save(
                         commit=False
                     )
 
                     school.report = report
+
+                    school.full_clean()
                     school.save()
 
-                    school_form.save_options(report)
+                    school_form.save_options(
+                        report
+                    )
 
-                # ---------------------------------------------
-                # Formal complaint
-                # ---------------------------------------------
+                # -------------------------------------------------
+                # FORMAL COMPLAINT
+                # -------------------------------------------------
 
                 if formal_complaint_form:
-
                     formal_complaint = (
                         formal_complaint_form.save(
                             commit=False
@@ -375,20 +402,26 @@ def incident_report_create(request):
                     )
 
                     formal_complaint.report = report
+
+                    formal_complaint.full_clean()
                     formal_complaint.save()
 
-                # ---------------------------------------------
-                # Referrals
-                # ---------------------------------------------
+                # -------------------------------------------------
+                # REFERRALS
+                # -------------------------------------------------
 
                 if referral_form:
-                    referral_form.save(report)
+                    referral_form.save(
+                        report
+                    )
 
-                # ---------------------------------------------
-                # Attachments
-                # ---------------------------------------------
+                # -------------------------------------------------
+                # ATTACHMENTS
+                # -------------------------------------------------
 
-                attachment_form.save(report)
+                attachment_form.save(
+                    report
+                )
 
             return redirect(
                 "incident_report_success",
@@ -403,6 +436,10 @@ def incident_report_create(request):
 
         contact_form = IncidentContactForm(
             prefix="contact",
+        )
+
+        affected_person_form = AffectedPersonForm(
+            prefix="affected",
         )
 
         incident_form = IncidentDetailsForm(
@@ -439,8 +476,13 @@ def incident_report_create(request):
             prefix="attachments",
         )
 
+    # -------------------------------------------------------------
+    # CONTEXT
+    # -------------------------------------------------------------
+
     context = {
         "contact_form": contact_form,
+        "affected_person_form": affected_person_form,
         "incident_form": incident_form,
         "california_form": california_form,
         "school_form": school_form,
@@ -462,7 +504,10 @@ def incident_report_create(request):
 # SUCCESS
 # ---------------------------------------------------------------------
 
-def incident_report_success(request, uuid):
+def incident_report_success(
+    request,
+    uuid,
+):
 
     report = get_object_or_404(
         IncidentReport,
