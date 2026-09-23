@@ -1,0 +1,850 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    Education Discrimination & Censorship Tracker
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <h1 class="mb-3">
+        AROC Education Discrimination & Censorship Tracker
+    </h1>
+
+    <p class="lead">
+        Report an incident of hate, racism, discrimination,
+        censorship, or repression.
+    </p>
+
+    <div class="privacy-box">
+        <strong>Privacy and anonymity</strong>
+
+        <p class="mb-0 mt-2">
+            Your information will be kept private and confidential.
+            Incident information used for research or public reporting
+            will be anonymized unless you explicitly authorize your
+            story or identifying information to be shared.
+        </p>
+    </div>
+
+    <p class="required-note">
+        Fields marked with an asterisk are required.
+    </p>
+</div>
+
+
+<form
+    method="post"
+    enctype="multipart/form-data"
+    novalidate
+>
+    {% csrf_token %}
+
+
+    {# ---------------------------------------------------------- #}
+    {# FORM-WIDE ERRORS #}
+    {# ---------------------------------------------------------- #}
+
+    {% if contact_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ contact_form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    {% if incident_form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ incident_form.non_field_errors }}
+        </div>
+    {% endif %}
+
+
+    {# ---------------------------------------------------------- #}
+    {# CONSENT + CONTACT #}
+    {# ---------------------------------------------------------- #}
+
+    <section class="form-section">
+
+        <h2>1. Consent and contact information</h2>
+
+        {{ contact_form.has_consented|as_crispy_field }}
+
+        <hr>
+
+        {{ contact_form.state|as_crispy_field }}
+
+        <div class="row">
+            <div class="col-md-6">
+                {{ contact_form.first_name|as_crispy_field }}
+            </div>
+
+            <div class="col-md-6">
+                {{ contact_form.last_name|as_crispy_field }}
+            </div>
+        </div>
+
+        {{ contact_form.email|as_crispy_field }}
+
+        <div id="phone-field">
+            {{ contact_form.phone|as_crispy_field }}
+        </div>
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# BASIC INCIDENT DETAILS #}
+    {# ---------------------------------------------------------- #}
+
+    <section class="form-section">
+
+        <h2>2. Tell us what happened</h2>
+
+        {{ incident_form.date_precision|as_crispy_field }}
+
+        <div id="exact-date-fields">
+            {{ incident_form.incident_date|as_crispy_field }}
+        </div>
+
+        <div
+            id="month-year-fields"
+            class="row"
+        >
+            <div class="col-md-6">
+                {{ incident_form.incident_month|as_crispy_field }}
+            </div>
+
+            <div class="col-md-6">
+                {{ incident_form.incident_year|as_crispy_field }}
+            </div>
+        </div>
+
+        {{ incident_form.description|as_crispy_field }}
+
+        <div class="row">
+            <div class="col-md-8">
+                {{ incident_form.city|as_crispy_field }}
+            </div>
+
+            <div class="col-md-4">
+                {{ incident_form.zip_code|as_crispy_field }}
+            </div>
+        </div>
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# TYPE OF INCIDENT #}
+    {# ---------------------------------------------------------- #}
+
+    <section class="form-section">
+
+        <h2>3. About the incident</h2>
+
+        <h3>
+            Did the incident involve any of these forms of racism?
+        </h3>
+
+        {{ incident_form.racism_types|as_crispy_field }}
+
+        <h3>Where did the incident take place?</h3>
+
+        <p class="text-muted">
+            Select all that apply.
+        </p>
+
+        {{ incident_form.location_types|as_crispy_field }}
+
+        <h3>What type of incident was it?</h3>
+
+        {{ incident_form.incident_types|as_crispy_field }}
+
+        <hr>
+
+        {{ incident_form.anti_palestinian_racism|as_crispy_field }}
+
+        {{ incident_form.knows_of_other_apr_incidents|as_crispy_field }}
+
+        {{ incident_form.similar_incidents|as_crispy_field }}
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# CALIFORNIA SECTION #}
+    {# ---------------------------------------------------------- #}
+
+    <section
+        class="form-section conditional-section"
+        id="california-section"
+    >
+
+        <h2>4. California-specific information</h2>
+
+        {{ california_form.is_k12_incident|as_crispy_field }}
+
+        {{ california_form.reporter_role|as_crispy_field }}
+
+        <div
+            id="reporter-role-other"
+            class="conditional-section"
+        >
+            {{ california_form.reporter_role_other|as_crispy_field }}
+        </div>
+
+        <div
+            id="student-fields"
+            class="conditional-section"
+        >
+            {{ california_form.student_date_of_birth|as_crispy_field }}
+        </div>
+
+        <div
+            id="parent-fields"
+            class="conditional-section"
+        >
+            {{ california_form.child_full_name|as_crispy_field }}
+        </div>
+
+        {{ california_form.age|as_crispy_field }}
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# SCHOOL SECTION #}
+    {# ---------------------------------------------------------- #}
+
+    <section
+        class="form-section conditional-section"
+        id="school-section"
+    >
+
+        <h2>5. School information</h2>
+
+        <div class="row">
+            <div class="col-md-7">
+                {{ school_form.school_name|as_crispy_field }}
+            </div>
+
+            <div class="col-md-5">
+                {{ school_form.school_district|as_crispy_field }}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                {{ school_form.grade|as_crispy_field }}
+            </div>
+
+            <div class="col-md-6">
+                {{ school_form.principal|as_crispy_field }}
+            </div>
+        </div>
+
+        {{ school_form.location_within_school|as_crispy_field }}
+
+        {{ school_form.school_type|as_crispy_field }}
+
+        <div
+            id="school-type-other"
+            class="conditional-section"
+        >
+            {{ school_form.school_type_other|as_crispy_field }}
+        </div>
+
+        <hr>
+
+        <h3>School response</h3>
+
+        {{ school_form.school_was_aware|as_crispy_field }}
+
+        <div
+            id="school-aware-details"
+            class="conditional-section"
+        >
+
+            {{ school_form.concerns_addressed_to|as_crispy_field }}
+
+            {{ school_form.concerns_addressed_date|as_crispy_field }}
+
+        </div>
+
+        {{ school_form.teacher_admin_response|as_crispy_field }}
+
+        {{ school_form.satisfied_with_response|as_crispy_field }}
+
+        <div
+            id="satisfaction-explanation"
+            class="conditional-section"
+        >
+            {{ school_form.satisfaction_explanation|as_crispy_field }}
+        </div>
+
+        {{ school_form.school_response_effect|as_crispy_field }}
+
+        <hr>
+
+        <h3>Educational impacts</h3>
+
+        <p class="text-muted">
+            Select all that apply.
+        </p>
+
+        {{ school_form.educational_impacts|as_crispy_field }}
+
+        <div
+            id="absence-frequency"
+            class="conditional-section"
+        >
+            {{ school_form.absence_due_to_racism_frequency|as_crispy_field }}
+        </div>
+
+        <hr>
+
+        {{ incident_form.previously_reported|as_crispy_field }}
+
+        <div
+            id="nonreport-reasons"
+            class="conditional-section"
+        >
+            {{ school_form.nonreport_reasons|as_crispy_field }}
+        </div>
+
+        {{ incident_form.resolution_steps|as_crispy_field }}
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# FORMAL CA COMPLAINT #}
+    {# ---------------------------------------------------------- #}
+
+    <section
+        class="form-section conditional-section"
+        id="formal-complaint-section"
+    >
+
+        <h2>6. California K–12 complaint</h2>
+
+        {{ formal_complaint_form.previously_submitted_to_district|as_crispy_field }}
+
+        {{ formal_complaint_form.authorize_autopopulation|as_crispy_field }}
+
+        <div
+            id="formal-complaint-details"
+            class="conditional-section"
+        >
+
+            {{ formal_complaint_form.complaint_against|as_crispy_field }}
+
+            {{ formal_complaint_form.individuals_involved|as_crispy_field }}
+
+            {{ formal_complaint_form.witnesses|as_crispy_field }}
+
+            {{ formal_complaint_form.discussed_with_principal_or_supervisor|as_crispy_field }}
+
+            {{ formal_complaint_form.concerns_addressed_to|as_crispy_field }}
+
+            {{ formal_complaint_form.concerns_addressed_date|as_crispy_field }}
+
+            {{ formal_complaint_form.requested_remedy|as_crispy_field }}
+
+            {{ formal_complaint_form.complainant_address|as_crispy_field }}
+
+        </div>
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# EXPERIENCES + IMPACTS #}
+    {# ---------------------------------------------------------- #}
+
+    <section class="form-section">
+
+        <h2>7. Experiences and impacts</h2>
+
+        <h3>
+            What forms of discrimination or repression did you experience?
+        </h3>
+
+        {{ demographics_form.discrimination_experiences|as_crispy_field }}
+
+        <h3>What impacts did this have on your well-being?</h3>
+
+        <p class="text-muted">
+            Select all that apply.
+        </p>
+
+        {{ demographics_form.wellbeing_impacts|as_crispy_field }}
+
+        {{ final_form.connection_change|as_crispy_field }}
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# DEMOGRAPHICS #}
+    {# ---------------------------------------------------------- #}
+
+    <section class="form-section">
+
+        <h2>8. Identity and demographics</h2>
+
+        <p class="text-muted">
+            If you are filling this form out on behalf of another
+            person, answer these questions about the person who
+            experienced the incident.
+        </p>
+
+        <h3>
+            What aspects of identity may have been targeted?
+        </h3>
+
+        {{ demographics_form.targeted_identities|as_crispy_field }}
+
+        <h3>Race and/or ethnicity</h3>
+
+        <p class="text-muted">
+            Choose up to three.
+        </p>
+
+        {{ demographics_form.race_ethnicity|as_crispy_field }}
+
+        <div
+            id="arab-palestinian-section"
+            class="conditional-section"
+        >
+            <h3>Arab / Palestinian identity</h3>
+
+            {{ demographics_form.arab_palestinian_identity|as_crispy_field }}
+        </div>
+
+        {{ demographics_form.gender|as_crispy_field }}
+
+        <div
+            id="gender-other"
+            class="conditional-section"
+        >
+            {{ demographics_form.gender_other|as_crispy_field }}
+        </div>
+
+        {{ demographics_form.religion|as_crispy_field }}
+
+        <div
+            id="religion-other"
+            class="conditional-section"
+        >
+            {{ demographics_form.religion_other|as_crispy_field }}
+        </div>
+
+        {{ final_form.other_identity_information|as_crispy_field }}
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# REFERRALS #}
+    {# ---------------------------------------------------------- #}
+
+    <section
+        class="form-section conditional-section"
+        id="referral-section"
+    >
+
+        <h2>9. California referrals and support</h2>
+
+        <p>
+            You may choose to have this incident shared with
+            organizations that can provide support or legal assistance.
+        </p>
+
+        {{ referral_form.organizations|as_crispy_field }}
+
+        <hr>
+
+        <h3>Anonymous submissions</h3>
+
+        <p class="text-muted">
+            If you select an organization below, your incident
+            information will be shared anonymously and you will not
+            receive individual follow-up from that organization.
+        </p>
+
+        {{ referral_form.anonymous_organizations|as_crispy_field }}
+
+        {{ final_form.support_sought_elsewhere|as_crispy_field }}
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# ATTACHMENTS #}
+    {# ---------------------------------------------------------- #}
+
+    <section class="form-section">
+
+        <h2>10. Supporting materials</h2>
+
+        <p>
+            Are there photos or documents you would like to include
+            that help explain what happened?
+        </p>
+
+        {{ attachment_form.files|as_crispy_field }}
+
+    </section>
+
+
+    {# ---------------------------------------------------------- #}
+    {# FINAL INFORMATION + SIGNATURE #}
+    {# ---------------------------------------------------------- #}
+
+    <section class="form-section">
+
+        <h2>11. Anything else?</h2>
+
+        {{ final_form.additional_information|as_crispy_field }}
+
+        <div
+            id="non-ca-followup"
+            class="conditional-section"
+        >
+            {{ final_form.opt_out_of_followup|as_crispy_field }}
+        </div>
+
+    </section>
+
+
+    <section class="form-section">
+
+        <h2>12. Signature</h2>
+
+        <p>
+            By typing your name below, you confirm that the information
+            provided is true and correct to the best of your knowledge
+            and agree to treat this digital signature as your physical
+            signature.
+        </p>
+
+        <div class="row">
+            <div class="col-md-8">
+                {{ final_form.signature_name|as_crispy_field }}
+            </div>
+
+            <div class="col-md-4">
+                {{ final_form.signature_date|as_crispy_field }}
+            </div>
+        </div>
+
+    </section>
+
+
+    <div class="d-grid mb-5">
+        <button
+            type="submit"
+            class="btn btn-dark btn-lg"
+        >
+            Submit report
+        </button>
+    </div>
+
+</form>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    function value(id) {
+        const el = document.getElementById(id);
+        return el ? el.value : "";
+    }
+
+
+    function setVisible(id, visible) {
+        const el = document.getElementById(id);
+
+        if (!el) {
+            return;
+        }
+
+        el.style.display = visible ? "block" : "none";
+    }
+
+
+    function checkedValue(name) {
+        const el = document.querySelector(
+            `input[name="${name}"]:checked`
+        );
+
+        return el ? el.value : null;
+    }
+
+
+    function checkboxWithLabelContains(name, text) {
+        const inputs = document.querySelectorAll(
+            `input[name="${name}"]`
+        );
+
+        text = text.toLowerCase();
+
+        for (const input of inputs) {
+
+            if (!input.checked) {
+                continue;
+            }
+
+            const label = document.querySelector(
+                `label[for="${input.id}"]`
+            );
+
+            if (
+                label &&
+                label.textContent.toLowerCase().includes(text)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    function updateDateFields() {
+
+        const precision = value(
+            "id_incident-date_precision"
+        );
+
+        setVisible(
+            "exact-date-fields",
+            precision === "exact"
+        );
+
+        setVisible(
+            "month-year-fields",
+            precision === "month"
+        );
+    }
+
+
+    function updateCalifornia() {
+
+        const state = value(
+            "id_contact-state"
+        );
+
+        const isCalifornia = state === "CA";
+
+        setVisible(
+            "california-section",
+            isCalifornia
+        );
+
+        setVisible(
+            "referral-section",
+            isCalifornia
+        );
+
+        setVisible(
+            "non-ca-followup",
+            !isCalifornia
+        );
+
+        return isCalifornia;
+    }
+
+
+    function updateReporterRole() {
+
+        const role = value(
+            "id_california-reporter_role"
+        );
+
+        setVisible(
+            "student-fields",
+            role === "student"
+        );
+
+        setVisible(
+            "parent-fields",
+            role === "parent"
+        );
+
+        setVisible(
+            "reporter-role-other",
+            role === "other"
+        );
+    }
+
+
+    function updateSchoolSection() {
+
+        const isCalifornia = updateCalifornia();
+
+        const isK12 = checkedValue(
+            "california-is_k12_incident"
+        ) === "True";
+
+        const schoolLocation =
+            checkboxWithLabelContains(
+                "incident-location_types",
+                "school"
+            );
+
+        const showSchool =
+            schoolLocation ||
+            (isCalifornia && isK12);
+
+        setVisible(
+            "school-section",
+            showSchool
+        );
+
+        setVisible(
+            "formal-complaint-section",
+            isCalifornia && isK12
+        );
+    }
+
+
+    function updateSchoolAware() {
+
+        const aware = value(
+            "id_school-school_was_aware"
+        );
+
+        setVisible(
+            "school-aware-details",
+            aware === "yes"
+        );
+    }
+
+
+    function updateSchoolType() {
+
+        const type = value(
+            "id_school-school_type"
+        );
+
+        setVisible(
+            "school-type-other",
+            type === "other"
+        );
+    }
+
+
+    function updateSatisfaction() {
+
+        const answer = value(
+            "id_school-satisfied_with_response"
+        );
+
+        setVisible(
+            "satisfaction-explanation",
+            answer === "yes" ||
+            answer === "no" ||
+            answer === "unsure"
+        );
+    }
+
+
+    function updateReported() {
+
+        const reported = checkedValue(
+            "incident-previously_reported"
+        );
+
+        setVisible(
+            "nonreport-reasons",
+            reported === "False"
+        );
+    }
+
+
+    function updateFormalComplaint() {
+
+        const authorized = checkedValue(
+            "formal-authorize_autopopulation"
+        );
+
+        setVisible(
+            "formal-complaint-details",
+            authorized === "True"
+        );
+    }
+
+
+    function updateGender() {
+
+        setVisible(
+            "gender-other",
+            value("id_demographics-gender") === "other"
+        );
+    }
+
+
+    function updateReligion() {
+
+        setVisible(
+            "religion-other",
+            value("id_demographics-religion") === "other"
+        );
+    }
+
+
+    function updateArabPalestinian() {
+
+        const swana =
+            checkboxWithLabelContains(
+                "demographics-race_ethnicity",
+                "southwest asian"
+            ) ||
+            checkboxWithLabelContains(
+                "demographics-race_ethnicity",
+                "arab"
+            ) ||
+            checkboxWithLabelContains(
+                "demographics-race_ethnicity",
+                "middle eastern"
+            );
+
+        setVisible(
+            "arab-palestinian-section",
+            swana
+        );
+    }
+
+
+    function updateAll() {
+        updateDateFields();
+        updateCalifornia();
+        updateReporterRole();
+        updateSchoolSection();
+        updateSchoolAware();
+        updateSchoolType();
+        updateSatisfaction();
+        updateReported();
+        updateFormalComplaint();
+        updateGender();
+        updateReligion();
+        updateArabPalestinian();
+    }
+
+
+    document.addEventListener(
+        "change",
+        updateAll
+    );
+
+    updateAll();
+});
+</script>
+
+{% endblock %}
