@@ -3,7 +3,8 @@ from .base import *
 DEBUG = False
 
 ALLOWED_HOSTS = ['tracker.arocaction.org', 
-    'www.arocaction.org', 'arocaction.org']
+    'www.arocaction.org', 'arocaction.org', 
+    'edtracker-93baffac3864.herokuapp.com/']
 
 DATABASES = {}
 
