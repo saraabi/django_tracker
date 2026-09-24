@@ -1,6 +1,6 @@
 from .base import *
 
-DEBUG = False
+DEBUG = get_env_variable('DEBUG')
 
 ALLOWED_HOSTS = ['tracker.arocaction.org', 
     'www.arocaction.org', 'arocaction.org', 
