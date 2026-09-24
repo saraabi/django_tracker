@@ -4,7 +4,7 @@ DEBUG = get_env_variable('DEBUG')
 
 ALLOWED_HOSTS = ['tracker.arocaction.org', 
     'www.arocaction.org', 'arocaction.org', 
-    'edtracker-93baffac3864.herokuapp.com/']
+    'edtracker-93baffac3864.herokuapp.com']
 
 DATABASES = {}
 
