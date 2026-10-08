@@ -87,6 +87,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'django_tracker.wsgi.application'
 
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'None'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

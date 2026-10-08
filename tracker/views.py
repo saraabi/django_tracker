@@ -6,6 +6,9 @@ from django.shortcuts import (
     render,
 )
 from django.utils import timezone
+from django.views.decorators.clickjacking import xframe_options_exempt
+
+from functools import wraps
 
 from .forms import (
     IncidentContactForm,
@@ -24,6 +27,29 @@ from .models import (
     AffectedPerson,
     IncidentReport,
 )
+
+# ---------------------------------------------------------------------
+# DECORATORS
+# ---------------------------------------------------------------------
+
+
+def allow_partner_iframe(view_func):
+    @wraps(view_func)
+    @xframe_options_exempt
+    def wrapped(request, *args, **kwargs):
+        response = view_func(request, *args, **kwargs)
+
+        response["Content-Security-Policy"] = (
+            "frame-ancestors "
+            "'self' "
+            "https://antipalestinianracism.org "
+            "https://www.antipalestinianracism.org "
+            "https://k12defense.org;"
+        )
+
+        return response
+
+    return wrapped
 
 
 # ---------------------------------------------------------------------
@@ -79,6 +105,7 @@ def should_show_school_form(
 # CREATE REPORT
 # ---------------------------------------------------------------------
 
+@allow_partner_iframe
 def incident_report_create(request):
 
     error_sections = []
